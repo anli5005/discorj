@@ -12,6 +12,9 @@ module.exports = {};
 const intentHandlers = {
   "play": function(message, data) {
     message.channel.send("Playing " + data.parameters.videoName + "...");
+  },
+  "fallback": function(message, data) {
+    message.channel.send("I didn't understand what you said.");
   }
 };
 
@@ -34,8 +37,6 @@ module.exports.start = function(config, sessions) {
         if (sessionId === -1) {
           sessionId = sessions.length;
         }
-
-        console.log(message.guild.id + "?" + message.member.id);
 
         app.textRequest(message.content.replace("<@" + bot.user.id + ">", ""), {
           sessionId: sessionId
