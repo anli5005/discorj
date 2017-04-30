@@ -1,6 +1,9 @@
 # Config files
 config.json
 
+# Databases
+data
+
 # Logs
 logs
 *.log

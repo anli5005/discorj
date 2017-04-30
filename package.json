@@ -1,0 +1,27 @@
+{
+  "name": "discorj",
+  "version": "1.0.0",
+  "description": "A DJ bot for Discord. It does one thing and it does it really well.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anli5005/discorj.git"
+  },
+  "keywords": [
+    "discord"
+  ],
+  "author": "anli5005",
+  "bugs": {
+    "url": "https://github.com/anli5005/discorj/issues"
+  },
+  "homepage": "https://github.com/anli5005/discorj#readme",
+  "dependencies": {
+    "apiai": "^4.0.2",
+    "discord.js": "^11.0.0",
+    "mongodb": "^2.2.26",
+    "node-opus": "^0.2.6"
+  }
+}
