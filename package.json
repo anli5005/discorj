@@ -4,6 +4,7 @@
   "description": "A DJ bot for Discord. It does one thing and it does it really well.",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -21,7 +22,9 @@
   "dependencies": {
     "apiai": "^4.0.2",
     "discord.js": "^11.0.0",
+    "erlpack": "github:hammerandchisel/erlpack",
     "mongodb": "^2.2.26",
-    "node-opus": "^0.2.6"
+    "node-opus": "^0.2.6",
+    "uws": "^0.14.5"
   }
 }
