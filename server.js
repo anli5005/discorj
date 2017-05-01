@@ -40,6 +40,24 @@ const intentHandlers = {
       }
     });
   },
+
+  "resume": function(message, data, db) {
+    db.collection("current").findOne({_id: message.guild.id}, {fields: {paused: 1}}).then(function(playingVideo) {
+      if (playingVideo && playingVideo.paused) {
+        db.collection("current").updateOne({_id: message.guild.id}, {paused: false}).then(function() {
+          player.resume(message.guild.id);
+        });
+        message.channel.send("Playing music...");
+      } else if (message.content.includes("play")) {
+        message.channel.send("What video would you like to play?")
+      } else if (playingVideo) {
+        message.channel.send("Something's already playing.")
+      } else {
+        message.channel.send("You'll need to play something first.")
+      }
+    });
+  },
+
   "pause": function(message, data, db) {
     db.collection("current").findOne({_id: message.guild.id}, {fields: {paused: 1}}).then(function(playingVideo) {
       if (playingVideo && !playingVideo.paused) {
@@ -52,6 +70,12 @@ const intentHandlers = {
       }
     });
   },
+
+  "skip": function(message, data, db) {
+    player.skip(message.guild.id);
+    message.channel.send("Song skipped.");
+  },
+
   "fallback": function(message, data, db) {
     message.channel.send("I didn't understand what you said.");
   }
@@ -86,8 +110,8 @@ module.exports.start = function(config, sessions) {
           app.textRequest(message.content.replace("<@" + bot.user.id + ">", ""), {
             sessionId: sessionId
           }).on("response", function(response) {
-            if (intentHandlers[response.result.metadata.intentName]) {
-              intentHandlers[response.result.metadata.intentName](message, response.result, db, config);
+            if (intentHandlers[response.result.action]) {
+              intentHandlers[response.result.action](message, response.result, db, config);
             } else {
               message.channel.send("I can't do that right now, but it's coming soon! Stay tuned.")
             }
