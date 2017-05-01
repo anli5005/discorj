@@ -27,6 +27,7 @@
     "mongodb": "^2.2.26",
     "node-opus": "^0.2.6",
     "uws": "^0.14.5",
-    "valid-url": "^1.0.9"
+    "valid-url": "^1.0.9",
+    "ytdl-core": "^0.13.1"
   }
 }
