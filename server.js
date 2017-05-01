@@ -13,6 +13,10 @@ var player;
 
 module.exports = {};
 
+function sendQueueMessage(message, playNext) {
+  message.channel.send(playNext ? "Song playing next." : "Sure, I'll queue that song for you.");
+}
+
 const intentHandlers = {
   "play": function(message, data, db, config) {
     db.collection("current").findOne({_id: message.guild.id}, {fields: {channel: 1}}).then(function(playingVideo) {
@@ -74,6 +78,58 @@ const intentHandlers = {
   "skip": function(message, data, db) {
     player.skip(message.guild.id);
     message.channel.send("Song skipped.");
+  },
+
+  "queue": function(message, data, db, config, playNext) {
+    db.collection("queues").findOne({_id: message.guild.id}, {fields: {queue: 1}}).then(function(result) {
+      if (result) {
+        console.log("Updating queue...");
+        searchprovider.resolveVideo(data.parameters.videoName, config.youtube.token).then(function(metadata) {
+          db.collection("queues").updateOne({_id: message.guild.id}, {$set: {queue: playNext ? [metadata].concat(result.queue) : result.queue.concat([metadata])}});
+        });
+        sendQueueMessage(message, playNext);
+      } else {
+        db.collection("current").findOne({_id: message.guild.id}, {fields: {_id: 1}}).then(function(current) {
+          if (current) {
+            console.log("Making new queue...");
+            searchprovider.resolveVideo(data.parameters.videoName, config.youtube.token).then(function(metadata) {
+              db.collection("queues").insertOne({_id: message.guild.id, queue: [metadata]});
+            });
+            sendQueueMessage(message, playNext);
+          } else {
+            console.log("Playing song...");
+            intentHandlers["play"](message, data, db, config);
+          }
+        });
+      }
+
+    });
+  },
+
+  "playnext": function(message, data, db, config) {
+    intentHandlers.queue(message, data, db, config, true);
+  },
+
+  "nowplaying": function(message, data, db) {
+    db.collection("current").findOne({_id: message.guild.id}, {fields: {name: 1}}).then(function(playingVideo) {
+      if (playingVideo) {
+        message.channel.send("Right now, \"" + playingVideo.name + "\" is playing.");
+      } else {
+        message.channel.send("Right now, a hit single called _nothing_ is playing.")
+      }
+    });
+  },
+
+  "showqueue": function(message, data, db) {
+    db.collection("queues").findOne({_id: message.guild.id}, {fields: {queue: 1}}).then(function(queue) {
+      message.channel.send("Here's what's in the queue:\n\n" + queue.queue.map(function(song) {
+        return song.name;
+      }).join("\n"));
+    });
+  },
+
+  "add": function(message, data, db, config) {
+    message.channel.send("Add me to your server here: " + config.addLink);
   },
 
   "fallback": function(message, data, db) {
