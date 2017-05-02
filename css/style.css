@@ -12,16 +12,13 @@ body {
     "Ubuntu", "Cantarell", "Fira Sans",
     "Droid Sans", "Helvetica Neue", sans-serif;
   color: white;
-  background-color: rgb(67, 74, 84)
+  background-color: rgb(43, 48, 55)
 }
 
 header {
   height: 100vh;
   width: 100vw;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
   background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(https://upload.wikimedia.org/wikipedia/commons/1/1c/Paramore_Concert.jpg), black;
   background-size: cover;
   background-position: bottom;
@@ -40,8 +37,8 @@ header h1 {
 
 header p {
   margin-bottom: 1rem;
-  font-weight: 500;
-  font-size: 1.5rem;
+  font-weight: 400;
+  font-size: 2rem;
 }
 
 .button {
@@ -53,7 +50,7 @@ header p {
   background-color: rgb(218, 68, 83);
   color: white;
   font-size: 1rem;
-  transition: background-color 0.5s;
+  transition: background-color 0.2s;
 }
 
 .button:hover {
@@ -70,10 +67,152 @@ header .button {
   padding: 1rem 3rem;
 }
 
-.button:hover {
-
+header .fa {
+  display: block;
+  position: absolute;
+  left: 50%;
+  top: calc(100% - 1em);
+  font-size: 5rem;
+  transform: translateX(-50%);
+  color: white;
+  text-decoration: none;
 }
 
-header .button {
+.block {
+  width: 100vw;
+  padding: 3rem;
+  display: flex;
+}
 
+.centered {
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  text-align: center;
+}
+
+p.big {
+  font-size: 5rem;
+  font-style: italic;
+  margin-bottom: 2rem;
+  max-width: 100vw;
+}
+
+p.small {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+p {
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+  max-width: 50em;
+}
+
+.conversation, .text {
+  width: 50%;
+}
+
+.text-on-right .text {
+  order: 2;
+  text-align: right;
+}
+
+.text-on-right .conversation {
+  order: 1;
+}
+
+.conversation {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.text-on-left .conversation {
+  margin-right: 3rem;
+  align-items: flex-end;
+}
+
+.text-on-right .conversation {
+  margin-left: 3rem;
+  align-items: flex-start;
+}
+
+.conversation p {
+  border-radius: 25px;
+  padding: 0.5rem 1rem;
+  color: white;
+  background-color: rgba(255, 255, 255, 0.1);
+  position: relative;
+}
+
+.conversation p::before {
+  display: block;
+  content: " ";
+  border-radius: 50px;
+  height: 2.25rem;
+  width: 2.25rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  position: absolute;
+  top: 0;
+}
+
+.text-on-right .conversation p::before {
+  left: -2.5rem;
+}
+
+.text-on-left .conversation p::before {
+  right: -2.5rem;
+}
+
+p.a,
+p.a::before {
+  background-color: #1565C0;
+}
+
+p.b,
+p.b::before {
+  background-color: #2E7D32;
+}
+
+p.discorj {
+  background-color: rgb(218, 68, 83);
+}
+
+p.discorj::before {
+  background-image: url(../images/vinyl.svg);
+  background-size: 100%;
+}
+
+h2 {
+  font-size: 3rem;
+  font-weight: 300;
+  margin-bottom: 1rem;
+}
+
+.text p {
+  font-size: 1.1rem;
+  line-height: 1.5em;
+}
+
+.text-on-right .text .button {
+  margin-left: calc(100% - 14em);
+  text-align: center;
+}
+
+.text-on-left .text .button {
+  margin-right: calc(100% - 14em);
+  text-align: center;
+}
+
+footer {
+  padding: 1rem;
+}
+
+a {
+  color: rgb(218, 68, 83);
+}
+
+p.small a {
+  opacity: 0.9;
 }
