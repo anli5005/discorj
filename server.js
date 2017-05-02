@@ -122,14 +122,21 @@ const intentHandlers = {
 
   "showqueue": function(message, data, db) {
     db.collection("queues").findOne({_id: message.guild.id}, {fields: {queue: 1}}).then(function(queue) {
-      message.channel.send("Here's what's in the queue:\n\n" + queue.queue.map(function(song) {
-        return song.name;
-      }).join("\n"));
+      var i = 0;
+      queue ? message.channel.send("Here's what's in the queue:\n\n" + queue.queue.map(function(song) {
+        i++;
+        return i + ") " + song.name;
+      }).join("\n")) : message.channel.send("The queue is empty. Play something!");
     });
   },
 
   "add": function(message, data, db, config) {
     message.channel.send("Add me to your server here: " + config.addLink);
+  },
+
+  "clear": function(message, data, db) {
+    db.collection("queues").deleteOne({_id: message.guild.id});
+    message.channel.send("I've cleared the entire queue.");
   },
 
   "fallback": function(message, data, db) {
