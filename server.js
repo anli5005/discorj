@@ -21,7 +21,7 @@ const intentHandlers = {
   "play": function(message, data, db, config) {
     db.collection("current").findOne({_id: message.guild.id}, {fields: {channel: 1}}).then(function(playingVideo) {
       if (playingVideo || message.member.voiceChannel) {
-        searchprovider.resolveVideo(data.parameters.videoName, config.youtube.token).then(function(metadata) {
+        searchprovider.resolveVideo(data.parameters.videoName, config.youtube.token, message).then(function(metadata) {
           var channel = (playingVideo && playingVideo.channel) ? playingVideo.channel : message.member.voiceChannel.id;
           console.log({_id: message.guild.id, channel: channel, name: metadata.name, url: metadata.url, paused: false});
           db.collection("current").updateOne({_id: message.guild.id}, {_id: message.guild.id, channel: channel, name: metadata.name, url: metadata.url, paused: false}).then(function(result) {
@@ -84,18 +84,18 @@ const intentHandlers = {
     db.collection("queues").findOne({_id: message.guild.id}, {fields: {queue: 1}}).then(function(result) {
       if (result) {
         console.log("Updating queue...");
-        searchprovider.resolveVideo(data.parameters.videoName, config.youtube.token).then(function(metadata) {
+        searchprovider.resolveVideo(data.parameters.videoName, config.youtube.token, message).then(function(metadata) {
           db.collection("queues").updateOne({_id: message.guild.id}, {$set: {queue: playNext ? [metadata].concat(result.queue) : result.queue.concat([metadata])}});
+          sendQueueMessage(message, playNext);
         });
-        sendQueueMessage(message, playNext);
       } else {
         db.collection("current").findOne({_id: message.guild.id}, {fields: {_id: 1}}).then(function(current) {
           if (current) {
             console.log("Making new queue...");
-            searchprovider.resolveVideo(data.parameters.videoName, config.youtube.token).then(function(metadata) {
+            searchprovider.resolveVideo(data.parameters.videoName, config.youtube.token, message).then(function(metadata) {
               db.collection("queues").insertOne({_id: message.guild.id, queue: [metadata]});
+              sendQueueMessage(message, playNext);
             });
-            sendQueueMessage(message, playNext);
           } else {
             console.log("Playing song...");
             intentHandlers["play"](message, data, db, config);
