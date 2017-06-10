@@ -49,7 +49,7 @@ const intentHandlers = {
   "resume": function(message, data, db) {
     db.collection("current").findOne({_id: message.guild.id}, {fields: {paused: 1}}).then(function(playingVideo) {
       if (playingVideo && playingVideo.paused) {
-        db.collection("current").updateOne({_id: message.guild.id}, {paused: false}).then(function() {
+        db.collection("current").updateOne({_id: message.guild.id}, {$set: {paused: false}}).then(function() {
           player.resume(message.guild.id);
         });
         message.channel.send("Playing music...");
@@ -66,7 +66,7 @@ const intentHandlers = {
   "pause": function(message, data, db) {
     db.collection("current").findOne({_id: message.guild.id}, {fields: {paused: 1}}).then(function(playingVideo) {
       if (playingVideo && !playingVideo.paused) {
-        db.collection("current").updateOne({_id: message.guild.id}, {paused: true}).then(function() {
+        db.collection("current").updateOne({_id: message.guild.id}, {$set: {paused: true}}).then(function() {
           player.pause(message.guild.id);
         });
         message.channel.send("Okay, I've paused the music.")
@@ -155,13 +155,20 @@ const intentHandlers = {
       if (queue && queue.playlist) {
         db.collection("playlists").findOne({_id: queue.playlist.id}).then(function(playlist) {
           var embed = new Discord.RichEmbed();
+          var show = !queue.playlist.current;
           var i = 0;
-          var playlistString = playlist.order.map(function(song) {
+          var playlistString = [];
+          playlist.order.forEach(function(song) {
             i++;
-            return i + ") " + playlist.songs[song].name;
-          }).join("\n");
+            if (show) {
+              playlistString.push(i + ") " + playlist.songs[song].name);
+            }
+            if (song === queue.playlist.current) {
+              show = true;
+            }
+          });
           embed.setTitle("Playlist - " + playlist.name);
-          embed.setDescription(playlistString);
+          embed.setDescription(playlistString.join("\n"));
           message.channel.send("", {embed: embed});
         });
       }
@@ -231,6 +238,7 @@ const intentHandlers = {
           }).then(function() {
             return db.collection("current").findOne({_id: message.guild.id});
           }).then(function(current) {
+            console.log(current);
             if (message.member.voiceChannel.id && !current) {
               return db.collection("current").insertOne({_id: message.guild.id, channel: message.member.voiceChannel.id});
             }
@@ -305,6 +313,8 @@ module.exports.start = function(config, sessions) {
     });
 
     bot.login(config.discord.botToken);
+
+    db.collection("current").updateMany({url: {$exists: true}}, {$set: {paused: true}});
 
   });
 };

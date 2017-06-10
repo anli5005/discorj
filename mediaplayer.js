@@ -19,6 +19,8 @@ class MediaPlayer {
         var operation;
         if (data.queue.length > 1) {
           operation = player.db.collection("queues").updateOne({_id: guild}, {queue: data.queue.slice(1)});
+        } else if (data.playlist) {
+          operation = player.db.collection("queues").updateOne({_id: guild}, {$unset: {queue: 1}});
         } else {
           operation = player.db.collection("queues").deleteOne({_id: guild});
         }
@@ -37,7 +39,7 @@ class MediaPlayer {
           var songToPlay;
           if (data.playlist.current) {
             var index = playlist.order.indexOf(data.playlist.current);
-            if (playlist.order.length > index + 1) {
+            if (playlist.order.length <= index + 1) {
               player.db.collection("queues").deleteOne({_id: guild});
             } else {
               songToPlay = playlist.order[index + 1];
@@ -45,7 +47,13 @@ class MediaPlayer {
             }
           } else {
             songToPlay = playlist.order[0];
-            player.db.collection("queues").updateOne({_id: data.playlist.id}, {$set: {playlist: {id: data.playlist.id, current: songToPlay}}});
+            console.log("Song to play:")
+            console.log(songToPlay);
+            player.db.collection("queues").updateOne({_id: guild}, {$set: {playlist: {id: data.playlist.id, current: songToPlay}}}).then(function(res) {
+              console.log(res);
+            }).catch(function(e) {
+              console.log(e.stack);
+            });
           }
 
           if (songToPlay) {
@@ -57,6 +65,8 @@ class MediaPlayer {
             }).catch(function(e) {
               console.log(e.stack);
             });
+          } else {
+            player.db.collection("current").deleteOne({_id: guild});
           }
         });
       } else {
