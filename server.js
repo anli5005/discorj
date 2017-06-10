@@ -2,6 +2,7 @@
 
 const Discord = require("discord.js");
 const MongoClient = require("mongodb").MongoClient;
+const ObjectID = require("mongodb").ObjectID;
 const apiai = require("apiai");
 
 const searchprovider = require("./searchprovider");
@@ -85,8 +86,10 @@ const intentHandlers = {
       if (result) {
         console.log("Updating queue...");
         searchprovider.resolveVideo(data.parameters.videoName, config.youtube.token, message).then(function(metadata) {
-          db.collection("queues").updateOne({_id: message.guild.id}, {$set: {queue: playNext ? [metadata].concat(result.queue) : result.queue.concat([metadata])}});
+          db.collection("queues").updateOne({_id: message.guild.id}, {$set: {queue: playNext ? [metadata].concat(result.queue || []) : (result.queue || []).concat([metadata])}});
           sendQueueMessage(message, playNext);
+        }).catch(function(e) {
+          console.log(e.stack);
         });
       } else {
         db.collection("current").findOne({_id: message.guild.id}, {fields: {_id: 1}}).then(function(current) {
@@ -121,12 +124,47 @@ const intentHandlers = {
   },
 
   "showqueue": function(message, data, db) {
-    db.collection("queues").findOne({_id: message.guild.id}, {fields: {queue: 1}}).then(function(queue) {
-      var i = 0;
-      queue ? message.channel.send("Here's what's in the queue:\n\n" + queue.queue.map(function(song) {
-        i++;
-        return i + ") " + song.name;
-      }).join("\n")) : message.channel.send("The queue is empty. Play something!");
+    db.collection("current").findOne({_id: message.guild.id}).then(function(current) {
+      if (current && current.name) {
+        var embed = new Discord.RichEmbed();
+        embed.setTitle("Now Playing");
+        embed.setDescription(current.name);
+        return message.channel.send("", {embed: embed});
+      } else {
+        return Promise.resolve();
+      }
+    }).then(function() {
+      return db.collection("queues").findOne({_id: message.guild.id}, {fields: {queue: 1, playlist: 1}});
+    }).then(function(queue) {
+      if (queue && queue.queue) {
+        var embed = new Discord.RichEmbed();
+        var i = 0;
+        var queueString = queue.queue.map(function(song) {
+          i++;
+          return i + ") " + song.name;
+        }).join("\n");
+        embed.setTitle("Queue");
+        embed.setDescription(queueString);
+        return Promise.all([Promise.resolve(queue), message.channel.send("", {embed: embed})]);
+      } else {
+        return Promise.resolve([queue]);
+      }
+    }).then(function(result) {
+      var queue = result[0];
+      console.log(queue);
+      if (queue && queue.playlist) {
+        db.collection("playlists").findOne({_id: queue.playlist.id}).then(function(playlist) {
+          var embed = new Discord.RichEmbed();
+          var i = 0;
+          var playlistString = playlist.order.map(function(song) {
+            i++;
+            return i + ") " + playlist.songs[song].name;
+          }).join("\n");
+          embed.setTitle("Playlist - " + playlist.name);
+          embed.setDescription(playlistString);
+          message.channel.send("", {embed: embed});
+        });
+      }
     });
   },
 
@@ -137,6 +175,82 @@ const intentHandlers = {
   "clear": function(message, data, db) {
     db.collection("queues").deleteOne({_id: message.guild.id});
     message.channel.send("I've cleared the entire queue.");
+  },
+
+  "playlistfromqueue": function(message, data, db) {
+    if (data.parameters.name) {
+      db.collection("playlists").findOne({name: data.parameters.name, guild: message.guild.id}, {fields: {id: 1}}).then(function(playlist) {
+        if (playlist) {
+          message.channel.send("That playlist already exists!");
+        } else {
+          Promise.all([
+            db.collection("queues").findOne({_id: message.guild.id}, {fields: {queue: 1}}),
+            db.collection("current").findOne({_id: message.guild.id}, {fields: {name: 1, url: 1}})
+          ]).then(function(items) {
+            var list = {songs: {}, order: [], guild: message.guild.id, owner: message.member.id, name: data.parameters.name};
+            var current = items[1];
+            var queue = items[0];
+            if (current && current.url) {
+              var songID = new ObjectID().toHexString();
+              list.songs[songID] = {name: current.name, url: current.url};
+              list.order.push(songID);
+            }
+            if (queue && queue.queue) {
+              for (var song of queue.queue) {
+                var songID = new ObjectID().toHexString();
+
+                list.songs[songID] = song;
+                list.order.push(songID);
+              }
+            }
+            if (list.order.length > 0) {
+              db.collection("playlists").insertOne(list);
+              message.channel.send("I've made a playlist called \"" + data.parameters.name + "\" from the queue.");
+            } else {
+              message.channel.send("The queue is empty - add some songs!");
+            }
+          }).catch(function(e) {
+            console.log("rip goes @DiscorJ");
+            message.channel.send("rip goes discorj");
+            console.log(e.stack);
+          });
+        }
+      });
+    } else {
+      message.channel.send("What is the playlist going to be named?");
+    }
+  },
+
+  "playplaylist": function(message, data, db) {
+    if (data.parameters.playlist) {
+      db.collection("playlists").findOne({name: data.parameters.playlist, guild: message.guild.id}, {fields: {id: 1}}).then(function(playlist) {
+        if (playlist) {
+          db.collection("queues").count({_id: message.guild.id}).then(function(count) {
+            console.log(count);
+            return (count > 0) ? db.collection("queues").updateOne({_id: message.guild.id}, {$set: {playlist: {id: playlist._id}}}) : db.collection("queues").insertOne({_id: message.guild.id, playlist: {id: playlist._id}});
+          }).then(function() {
+            return db.collection("current").findOne({_id: message.guild.id});
+          }).then(function(current) {
+            if (message.member.voiceChannel.id && !current) {
+              return db.collection("current").insertOne({_id: message.guild.id, channel: message.member.voiceChannel.id});
+            }
+          }).then(function(result) {
+            console.log(result);
+            if (result) {
+              player.nextSong(message.guild.id);
+            }
+          }).catch(function(e) {
+            console.log(e.stack);
+            message.reply("discorj go boom");
+          });
+          message.channel.send("Playing playlist...");
+        } else {
+          message.channel.send("That playlist doesn't exist! Try making it first.")
+        }
+      });
+    } else {
+      message.channel.send("Which playlist?")
+    }
   },
 
   "fallback": function(message, data, db) {
@@ -173,6 +287,7 @@ module.exports.start = function(config, sessions) {
           app.textRequest(message.content.replace("<@" + bot.user.id + ">", ""), {
             sessionId: sessionId
           }).on("response", function(response) {
+            console.log(response.result.action);
             if (intentHandlers[response.result.action]) {
               intentHandlers[response.result.action](message, response.result, db, config);
             } else {

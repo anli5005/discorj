@@ -10,8 +10,7 @@ class MediaPlayer {
   nextSong(guild) {
     var player = this;
 
-    this.db.collection("queues").findOne({_id: guild}, {fields: {queue: 1}}).then(function(data) {
-      console.log("Here's the queue:");
+    this.db.collection("queues").findOne({_id: guild}, {fields: {queue: 1, playlist: 1}}).then(function(data) {
       console.log(data);
       if (data && data.queue && data.queue.length > 0) {
         console.log("What's next:");
@@ -32,6 +31,34 @@ class MediaPlayer {
         ]).then(function() {
           player.beginPlaying(guild);
         });
+      } else if (data && data.playlist) {
+        console.log(data.playlist);
+        player.db.collection("playlists").findOne({_id: data.playlist.id}, {fields: {songs: 1, order: 1}}).then(function(playlist) {
+          var songToPlay;
+          if (data.playlist.current) {
+            var index = playlist.order.indexOf(data.playlist.current);
+            if (playlist.order.length > index + 1) {
+              player.db.collection("queues").deleteOne({_id: guild});
+            } else {
+              songToPlay = playlist.order[index + 1];
+              player.db.collection("queues").updateOne({_id: guild}, {$set: {playlist: {id: data.playlist.id, current: songToPlay}}});
+            }
+          } else {
+            songToPlay = playlist.order[0];
+            player.db.collection("queues").updateOne({_id: data.playlist.id}, {$set: {playlist: {id: data.playlist.id, current: songToPlay}}});
+          }
+
+          if (songToPlay) {
+            player.db.collection("current").findOne({_id: guild}, {fields: {channel: 1}}).then(function(r) {
+              console.log(r);
+              return player.db.collection("current").updateOne({_id: guild}, {$set: {name: playlist.songs[songToPlay].name, url: playlist.songs[songToPlay].url, channel: r.channel}});
+            }).then(function() {
+              player.beginPlaying(guild);
+            }).catch(function(e) {
+              console.log(e.stack);
+            });
+          }
+        });
       } else {
         player.db.collection("current").deleteOne({_id: guild});
       }
@@ -39,7 +66,9 @@ class MediaPlayer {
   }
 
   skip(guild) {
-    this.activeStreams[guild].end();
+    if (this.activeStreams[guild]) {
+      this.activeStreams[guild].end();
+    }
   }
 
   play(video, guild) {
